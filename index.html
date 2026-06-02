@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 브롤스타즈 8인 리그전 🏆</title>
+    <style>
+        :root {
+            --brawl-blue: #0056b3;
+            --brawl-yellow: #ffcc00;
+            --brawl-dark: #1a1c29;
+            --brawl-light: #f0f4f8;
+        }
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            background-color: var(--brawl-dark);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--brawl-light);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        }
+        h1 {
+            text-align: center;
+            color: var(--brawl-blue);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid var(--brawl-yellow);
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: var(--brawl-blue);
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover { background-color: #f9f9f9; }
+        tr:nth-child(1) td { font-weight: bold; color: #d32f2f; background-color: #fff8e1; } /* 1등 강조 */
+
+        .form-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        button {
+            background-color: var(--brawl-yellow);
+            color: #333;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #e6b800; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 브롤스타즈 8인 라운드로빈 리그 🏆</h1>
+    
+    <section>
+        <h2>📊 실시간 순위표</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>플레이어</th>
+                    <th>승</th>
+                    <th>패</th>
+                    <th>승점</th>
+                    <th>총 킬 수</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                </tbody>
+        </table>
+    </section>
+
+    <section class="form-section">
+        <h2>⚔️ 경기 결과 입력</h2>
+        <form id="match-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="player1">플레이어 A</label>
+                    <select id="player1" required></select>
+                </div>
+                <div class="form-group">
+                    <label style="text-align:center;">VS</label>
+                </div>
+                <div class="form-group">
+                    <label for="player2">플레이어 B</label>
+                    <select id="player2" required></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="winner">승리자 선택</label>
+                    <select id="winner" required>
+                        <option value="">승리자를 선택하세요</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="p1-kills">플레이어 A 킬 수</label>
+                    <input type="number" id="p1-kills" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="p2-kills">플레이어 B 킬 수</label>
+                    <input type="number" id="p2-kills" min="0" required>
+                </div>
+            </div>
+            <button type="submit">결과 등록하기</button>
+        </form>
+    </section>
+</div>
+
+<script>
+    // 8명의 플레이어 초기 데이터
+    const playerNames = ["콜트 장인", "쉘리 고수", "스파이크 러버", "크로우 맘", "파이퍼 스나이퍼", "에드거 돌격대", "모티스 신", "레온 암살자"];
+    let players = {};
+
+    // 플레이어 객체 초기화
+    playerNames.forEach(name => {
+        players[name] = { name: name, wins: 0, losses: 0, points: 0, kills: 0 };
+    });
+
+    // UI 요소 가져오기
+    const leaderboardBody = document.getElementById('leaderboard-body');
+    const player1Select = document.getElementById('player1');
+    const player2Select = document.getElementById('player2');
+    const winnerSelect = document.getElementById('winner');
+    const matchForm = document.getElementById('match-form');
+
+    // 드롭다운 메뉴 설정
+    function populateDropdowns() {
+        const options = playerNames.map(name => `<option value="${name}">${name}</option>`).join('');
+        player1Select.innerHTML = `<option value="">선택</option>` + options;
+        player2Select.innerHTML = `<option value="">선택</option>` + options;
+    }
+
+    // 플레이어 A/B가 선택될 때 승리자 드롭다운 업데이트
+    function updateWinnerDropdown() {
+        const p1 = player1Select.value;
+        const p2 = player2Select.value;
+        winnerSelect.innerHTML = '<option value="">승리자를 선택하세요</option>';
+        if (p1) winnerSelect.innerHTML += `<option value="${p1}">${p1}</option>`;
+        if (p2) winnerSelect.innerHTML += `<option value="${p2}">${p2}</option>`;
+    }
+
+    player1Select.addEventListener('change', updateWinnerDropdown);
+    player2Select.addEventListener('change', updateWinnerDropdown);
+
+    // 순위표 정렬 및 렌더링
+    function renderLeaderboard() {
+        // 배열로 변환 후 정렬
+        const sortedPlayers = Object.values(players).sort((a, b) => {
+            // 1순위: 승점 (내림차순)
+            if (b.points !== a.points) {
+                return b.points - a.points;
+            }
+            // 2순위: 킬 수 (내림차순)
+            return b.kills - a.kills;
+        });
+
+        // HTML 생성
+        leaderboardBody.innerHTML = sortedPlayers.map((p, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${p.name}</td>
+                <td>${p.wins}</td>
+                <td>${p.losses}</td>
+                <td><strong>${p.points}</strong></td>
+                <td>${p.kills}</td>
+            </tr>
+        `).join('');
+    }
+
+    // 폼 제출 이벤트 (경기 결과 처리)
+    matchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const p1 = player1Select.value;
+        const p2 = player2Select.value;
+        const winner = winnerSelect.value;
+        const p1Kills = parseInt(document.getElementById('p1-kills').value);
+        const p2Kills = parseInt(document.getElementById('p2-kills').value);
+
+        if (p1 === p2) {
+            alert("플레이어 A와 B가 같을 수 없습니다!");
+            return;
+        }
+
+        // 결과 업데이트 로직
+        // 킬 수 누적
+        players[p1].kills += p1Kills;
+        players[p2].kills += p2Kills;
+
+        // 승패 및 승점 업데이트 (승리 1점)
+        if (winner === p1) {
+            players[p1].wins += 1;
+            players[p1].points += 1;
+            players[p2].losses += 1;
+        } else if (winner === p2) {
+            players[p2].wins += 1;
+            players[p2].points += 1;
+            players[p1].losses += 1;
+        }
+
+        // 화면 갱신 및 폼 초기화
+        renderLeaderboard();
+        matchForm.reset();
+        updateWinnerDropdown();
+        alert("경기 결과가 성공적으로 등록되었습니다!");
+    });
+
+    // 초기화 실행
+    populateDropdowns();
+    renderLeaderboard();
+</script>
+
+</body>
+</html>
