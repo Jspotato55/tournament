@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏆 브롤스타즈 8인 리그전 🏆</title>
+    <title>🏆 브롤스타즈 9인 리그전 🏆</title>
     <style>
         :root {
             --brawl-blue: #0056b3;
             --brawl-yellow: #ffcc00;
             --brawl-dark: #1a1c29;
             --brawl-light: #f0f4f8;
+            --matrix-self: #e0e0e0;
         }
         body {
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
@@ -22,7 +23,7 @@
         }
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 1000px;
             background: var(--brawl-light);
             padding: 30px;
             border-radius: 15px;
@@ -37,31 +38,62 @@
             color: #333;
             border-bottom: 2px solid var(--brawl-yellow);
             padding-bottom: 5px;
+            margin-top: 40px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-top: 15px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
         }
         th, td {
-            padding: 15px;
-            text-align: center;
-            border-bottom: 1px solid #ddd;
+            padding: 12px;
+            border: 1px solid #ddd;
         }
         th {
             background-color: var(--brawl-blue);
             color: white;
             font-weight: bold;
+            white-space: nowrap;
         }
-        tr:hover { background-color: #f9f9f9; }
-        tr:nth-child(1) td { font-weight: bold; color: #d32f2f; background-color: #fff8e1; } /* 1등 강조 */
+        
+        /* 순위표 스타일 */
+        .leaderboard-table tr:hover { background-color: #f9f9f9; }
+        .leaderboard-table tr:nth-child(1) td { font-weight: bold; color: #d32f2f; background-color: #fff8e1; }
 
+        /* 대진표(매트릭스) 스타일 */
+        .matrix-table th.axis-label {
+            background-color: #34495e;
+            font-size: 0.85em;
+        }
+        .matrix-cell {
+            padding: 8px 4px;
+            min-width: 65px;
+        }
+        .cell-points {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+        }
+        .cell-kills {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            display: block;
+            margin-top: 2px;
+        }
+        .self-cell {
+            background-color: var(--matrix-self);
+        }
+
+        /* 폼 스타일 */
         .form-section {
-            margin-top: 40px;
             padding: 20px;
             background-color: white;
             border-radius: 10px;
@@ -104,39 +136,54 @@
 <body>
 
 <div class="container">
-    <h1>🏆 브롤스타즈 8인 라운드로빈 리그 🏆</h1>
+    <h1>🏆 브롤스타즈 9인 라운드로빈 리그 🏆</h1>
     
     <section>
         <h2>📊 실시간 순위표</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>순위</th>
-                    <th>플레이어</th>
-                    <th>승</th>
-                    <th>패</th>
-                    <th>승점</th>
-                    <th>총 킬 수</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboard-body">
-                </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>플레이어</th>
+                        <th>승</th>
+                        <th>패</th>
+                        <th>승점</th>
+                        <th>총 킬 수</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>⚔️ 9 × 9 풀리그 교차표 (행: 득점자 / 열: 상대)</h2>
+        <div class="table-wrapper">
+            <table class="matrix-table">
+                <thead>
+                    <tr id="matrix-header">
+                        <th class="axis-label">득점 \ 상대</th>
+                        </tr>
+                </thead>
+                <tbody id="matrix-body"></tbody>
+            </table>
+        </div>
     </section>
 
     <section class="form-section">
-        <h2>⚔️ 경기 결과 입력</h2>
+        <h2>📝 경기 결과 입력</h2>
         <form id="match-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="player1">플레이어 A</label>
+                    <label for="player1">플레이어 A (행)</label>
                     <select id="player1" required></select>
                 </div>
                 <div class="form-group">
-                    <label style="text-align:center;">VS</label>
+                    <label style="text-align:center; padding-top:25px; font-weight:bold;">VS</label>
                 </div>
                 <div class="form-group">
-                    <label for="player2">플레이어 B</label>
+                    <label for="player2">플레이어 B (열)</label>
                     <select id="player2" required></select>
                 </div>
             </div>
@@ -164,30 +211,51 @@
 </div>
 
 <script>
-    // 8명의 플레이어 초기 데이터
-    const playerNames = ["콜트 장인", "쉘리 고수", "스파이크 러버", "크로우 맘", "파이퍼 스나이퍼", "에드거 돌격대", "모티스 신", "레온 암살자"];
+    // 9명의 플레이어 데이터 (이름 수정 가능)
+    const playerNames = [
+        "콜트 장인", "쉘리 고수", "스파이크 러버", 
+        "크로우 맘", "파이퍼 스나", "에드거 돌격", 
+        "모티스 신", "레온 암살", "대릴 마스터"
+    ];
+    
     let players = {};
+    let matchMatrix = {}; // 교차표 데이터를 저장할 객체
 
-    // 플레이어 객체 초기화
-    playerNames.forEach(name => {
-        players[name] = { name: name, wins: 0, losses: 0, points: 0, kills: 0 };
+    // 데이터 구조 초기화
+    playerNames.forEach(p1 => {
+        players[p1] = { name: p1, wins: 0, losses: 0, points: 0, kills: 0 };
+        matchMatrix[p1] = {};
+        playerNames.forEach(p2 => {
+            if (p1 === p2) {
+                matchMatrix[p1][p2] = { self: true };
+            } else {
+                matchMatrix[p1][p2] = { points: '-', kills: '-' };
+            }
+        });
     });
 
     // UI 요소 가져오기
     const leaderboardBody = document.getElementById('leaderboard-body');
+    const matrixHeader = document.getElementById('matrix-header');
+    const matrixBody = document.getElementById('matrix-body');
     const player1Select = document.getElementById('player1');
     const player2Select = document.getElementById('player2');
     const winnerSelect = document.getElementById('winner');
     const matchForm = document.getElementById('match-form');
 
-    // 드롭다운 메뉴 설정
-    function populateDropdowns() {
+    // 드롭다운 및 매트릭스 헤더 초기화
+    function initUI() {
         const options = playerNames.map(name => `<option value="${name}">${name}</option>`).join('');
         player1Select.innerHTML = `<option value="">선택</option>` + options;
         player2Select.innerHTML = `<option value="">선택</option>` + options;
+
+        // 매트릭스 가로 헤더 생성
+        playerNames.forEach(name => {
+            matrixHeader.innerHTML += `<th>${name}</th>`;
+        });
     }
 
-    // 플레이어 A/B가 선택될 때 승리자 드롭다운 업데이트
+    // 플레이어 선택 시 승리자 셀렉트 박스 동적 제어
     function updateWinnerDropdown() {
         const p1 = player1Select.value;
         const p2 = player2Select.value;
@@ -199,19 +267,13 @@
     player1Select.addEventListener('change', updateWinnerDropdown);
     player2Select.addEventListener('change', updateWinnerDropdown);
 
-    // 순위표 정렬 및 렌더링
+    // 1. 순위표 렌더링
     function renderLeaderboard() {
-        // 배열로 변환 후 정렬
         const sortedPlayers = Object.values(players).sort((a, b) => {
-            // 1순위: 승점 (내림차순)
-            if (b.points !== a.points) {
-                return b.points - a.points;
-            }
-            // 2순위: 킬 수 (내림차순)
-            return b.kills - a.kills;
+            if (b.points !== a.points) return b.points - a.points; // 1순위 승점
+            return b.kills - a.kills; // 2순위 킬 수
         });
 
-        // HTML 생성
         leaderboardBody.innerHTML = sortedPlayers.map((p, index) => `
             <tr>
                 <td>${index + 1}</td>
@@ -224,7 +286,33 @@
         `).join('');
     }
 
-    // 폼 제출 이벤트 (경기 결과 처리)
+    // 2. 9x9 매트릭스 교차표 렌더링
+    function renderMatrix() {
+        matrixBody.innerHTML = '';
+        
+        playerNames.forEach(rowPlayer => {
+            let rowHtml = `<tr><td style="background-color:#34495e; color:white; font-weight:bold;">${rowPlayer}</td>`;
+            
+            playerNames.forEach(colPlayer => {
+                const cell = matchMatrix[rowPlayer][colPlayer];
+                if (cell.self) {
+                    rowHtml += `<td class="self-cell">X</td>`;
+                } else {
+                    rowHtml += `
+                        <td class="matrix-cell">
+                            <span class="cell-points">${cell.points}</span>
+                            <span class="cell-kills">${cell.kills !== '-' ? cell.kills + '🔥' : '-'}</span>
+                        </td>
+                    `;
+                }
+            });
+            
+            rowHtml += `</tr>`;
+            matrixBody.innerHTML += rowHtml;
+        });
+    }
+
+    // 결과 등록 이벤트
     matchForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -235,36 +323,42 @@
         const p2Kills = parseInt(document.getElementById('p2-kills').value);
 
         if (p1 === p2) {
-            alert("플레이어 A와 B가 같을 수 없습니다!");
+            alert("자기 자신과 경기할 수 없습니다!");
             return;
         }
 
-        // 결과 업데이트 로직
-        // 킬 수 누적
+        // 1. 순위표용 누적 데이터 업데이트
         players[p1].kills += p1Kills;
         players[p2].kills += p2Kills;
 
-        // 승패 및 승점 업데이트 (승리 1점)
         if (winner === p1) {
-            players[p1].wins += 1;
-            players[p1].points += 1;
+            players[p1].wins += 1;   players[p1].points += 1;
             players[p2].losses += 1;
+            
+            // 매트릭스 교차 데이터 입력 (승리 1점, 패배 0점)
+            matchMatrix[p1][p2] = { points: 1, kills: p1Kills };
+            matchMatrix[p2][p1] = { points: 0, kills: p2Kills };
         } else if (winner === p2) {
-            players[p2].wins += 1;
-            players[p2].points += 1;
+            players[p2].wins += 1;   players[p2].points += 1;
             players[p1].losses += 1;
+
+            // 매트릭스 교차 데이터 입력
+            matchMatrix[p1][p2] = { points: 0, kills: p1Kills };
+            matchMatrix[p2][p1] = { points: 1, kills: p2Kills };
         }
 
-        // 화면 갱신 및 폼 초기화
+        // 화면 갱신 및 초기화
         renderLeaderboard();
+        renderMatrix();
         matchForm.reset();
         updateWinnerDropdown();
-        alert("경기 결과가 성공적으로 등록되었습니다!");
+        alert("리그 결과가 교차표와 순위표에 반영되었습니다!");
     });
 
-    // 초기화 실행
-    populateDropdowns();
+    // 최초 실행
+    initUI();
     renderLeaderboard();
+    renderMatrix();
 </script>
 
 </body>
