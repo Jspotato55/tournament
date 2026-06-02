@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏆 브롤스타즈 9인 리그전 🏆</title>
+    <title>🏆 FLT 브롤스타즈 리그전 🏆</title>
     <style>
         :root {
             --brawl-blue: #0056b3;
@@ -91,55 +91,15 @@
         .self-cell {
             background-color: var(--matrix-self);
         }
-
-        /* 폼 스타일 */
-        .form-section {
-            padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            border: 2px solid #ddd;
-        }
-        .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .form-group {
-            flex: 1;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-        select, input, button {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 1em;
-        }
-        button {
-            background-color: var(--brawl-yellow);
-            color: #333;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1.1em;
-            transition: 0.2s;
-        }
-        button:hover { background-color: #e6b800; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🏆 브롤스타즈 9인 라운드로빈 리그 🏆</h1>
+    <h1>🏆 FLT 브롤스타즈 리그전 🏆</h1>
     
     <section>
-        <h2>📊 실시간 순위표</h2>
+        <h2>📊 리그 순위표</h2>
         <div class="table-wrapper">
             <table class="leaderboard-table">
                 <thead>
@@ -164,64 +124,33 @@
                 <thead>
                     <tr id="matrix-header">
                         <th class="axis-label">득점 \ 상대</th>
-                        </tr>
+                    </tr>
                 </thead>
                 <tbody id="matrix-body"></tbody>
             </table>
         </div>
     </section>
-
-    <section class="form-section">
-        <h2>📝 경기 결과 입력</h2>
-        <form id="match-form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="player1">플레이어 A (행)</label>
-                    <select id="player1" required></select>
-                </div>
-                <div class="form-group">
-                    <label style="text-align:center; padding-top:25px; font-weight:bold;">VS</label>
-                </div>
-                <div class="form-group">
-                    <label for="player2">플레이어 B (열)</label>
-                    <select id="player2" required></select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="winner">승리자 선택</label>
-                    <select id="winner" required>
-                        <option value="">승리자를 선택하세요</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="p1-kills">플레이어 A 킬 수</label>
-                    <input type="number" id="p1-kills" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="p2-kills">플레이어 B 킬 수</label>
-                    <input type="number" id="p2-kills" min="0" required>
-                </div>
-            </div>
-            <button type="submit">결과 등록하기</button>
-        </form>
-    </section>
 </div>
 
 <script>
-    // 9명의 플레이어 데이터 (이름 수정 가능)
+    // [1] 9명의 플레이어 이름 설정 완료
     const playerNames = [
-        "콜트 장인", "쉘리 고수", "스파이크 러버", 
-        "크로우 맘", "파이퍼 스나", "에드거 돌격", 
-        "모티스 신", "레온 암살", "대릴 마스터"
+        "태유", "웅희", "재현", "호준", "건아", "보윤", "지승", "의현", "현구"
+    ];
+
+    // [2] 요청하신 경기 결과 4건 입력 완료
+    // 앞으로 경기 데이터가 쌓이면 아래 양식에 맞추어 이어서 추가하시면 됩니다.
+    const matchResults = [
+        { p1: "지승", p2: "보윤", winner: "보윤", p1Kills: 0, p2Kills: 2 },
+        { p1: "지승", p2: "의현", winner: "의현", p1Kills: 0, p2Kills: 2 },
+        { p1: "보윤", p2: "의현", winner: "의현", p1Kills: 0, p2Kills: 1 },
+        { p1: "지승", p2: "태유", winner: "태유", p1Kills: 0, p2Kills: 4 }
     ];
     
-    let players = {};
-    let matchMatrix = {}; // 교차표 데이터를 저장할 객체
-
     // 데이터 구조 초기화
+    let players = {};
+    let matchMatrix = {};
+
     playerNames.forEach(p1 => {
         players[p1] = { name: p1, wins: 0, losses: 0, points: 0, kills: 0 };
         matchMatrix[p1] = {};
@@ -234,44 +163,48 @@
         });
     });
 
-    // UI 요소 가져오기
     const leaderboardBody = document.getElementById('leaderboard-body');
     const matrixHeader = document.getElementById('matrix-header');
     const matrixBody = document.getElementById('matrix-body');
-    const player1Select = document.getElementById('player1');
-    const player2Select = document.getElementById('player2');
-    const winnerSelect = document.getElementById('winner');
-    const matchForm = document.getElementById('match-form');
 
-    // 드롭다운 및 매트릭스 헤더 초기화
+    // UI 헤더 초기화
     function initUI() {
-        const options = playerNames.map(name => `<option value="${name}">${name}</option>`).join('');
-        player1Select.innerHTML = `<option value="">선택</option>` + options;
-        player2Select.innerHTML = `<option value="">선택</option>` + options;
-
-        // 매트릭스 가로 헤더 생성
         playerNames.forEach(name => {
             matrixHeader.innerHTML += `<th>${name}</th>`;
         });
     }
 
-    // 플레이어 선택 시 승리자 셀렉트 박스 동적 제어
-    function updateWinnerDropdown() {
-        const p1 = player1Select.value;
-        const p2 = player2Select.value;
-        winnerSelect.innerHTML = '<option value="">승리자를 선택하세요</option>';
-        if (p1) winnerSelect.innerHTML += `<option value="${p1}">${p1}</option>`;
-        if (p2) winnerSelect.innerHTML += `<option value="${p2}">${p2}</option>`;
-    }
+    // 데이터 계산 로직
+    function calculateData() {
+        matchResults.forEach(match => {
+            const { p1, p2, winner, p1Kills, p2Kills } = match;
 
-    player1Select.addEventListener('change', updateWinnerDropdown);
-    player2Select.addEventListener('change', updateWinnerDropdown);
+            if (players[p1] && players[p2]) {
+                players[p1].kills += p1Kills;
+                players[p2].kills += p2Kills;
+
+                if (winner === p1) {
+                    players[p1].wins += 1;   players[p1].points += 1;
+                    players[p2].losses += 1;
+                    
+                    matchMatrix[p1][p2] = { points: 1, kills: p1Kills };
+                    matchMatrix[p2][p1] = { points: 0, kills: p2Kills };
+                } else if (winner === p2) {
+                    players[p2].wins += 1;   players[p2].points += 1;
+                    players[p1].losses += 1;
+
+                    matchMatrix[p1][p2] = { points: 0, kills: p1Kills };
+                    matchMatrix[p2][p1] = { points: 1, kills: p2Kills };
+                }
+            }
+        });
+    }
 
     // 1. 순위표 렌더링
     function renderLeaderboard() {
         const sortedPlayers = Object.values(players).sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points; // 1순위 승점
-            return b.kills - a.kills; // 2순위 킬 수
+            if (b.points !== a.points) return b.points - a.points;
+            return b.kills - a.kills;
         });
 
         leaderboardBody.innerHTML = sortedPlayers.map((p, index) => `
@@ -301,7 +234,7 @@
                     rowHtml += `
                         <td class="matrix-cell">
                             <span class="cell-points">${cell.points}</span>
-                            <span class="cell-kills">${cell.kills !== '-' ? cell.kills + '🔥' : '-'}</span>
+                            <span class="cell-kills">${cell.kills !== '-' ? cell.kills + ' 킬' : '-'}</span>
                         </td>
                     `;
                 }
@@ -312,51 +245,9 @@
         });
     }
 
-    // 결과 등록 이벤트
-    matchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const p1 = player1Select.value;
-        const p2 = player2Select.value;
-        const winner = winnerSelect.value;
-        const p1Kills = parseInt(document.getElementById('p1-kills').value);
-        const p2Kills = parseInt(document.getElementById('p2-kills').value);
-
-        if (p1 === p2) {
-            alert("자기 자신과 경기할 수 없습니다!");
-            return;
-        }
-
-        // 1. 순위표용 누적 데이터 업데이트
-        players[p1].kills += p1Kills;
-        players[p2].kills += p2Kills;
-
-        if (winner === p1) {
-            players[p1].wins += 1;   players[p1].points += 1;
-            players[p2].losses += 1;
-            
-            // 매트릭스 교차 데이터 입력 (승리 1점, 패배 0점)
-            matchMatrix[p1][p2] = { points: 1, kills: p1Kills };
-            matchMatrix[p2][p1] = { points: 0, kills: p2Kills };
-        } else if (winner === p2) {
-            players[p2].wins += 1;   players[p2].points += 1;
-            players[p1].losses += 1;
-
-            // 매트릭스 교차 데이터 입력
-            matchMatrix[p1][p2] = { points: 0, kills: p1Kills };
-            matchMatrix[p2][p1] = { points: 1, kills: p2Kills };
-        }
-
-        // 화면 갱신 및 초기화
-        renderLeaderboard();
-        renderMatrix();
-        matchForm.reset();
-        updateWinnerDropdown();
-        alert("리그 결과가 교차표와 순위표에 반영되었습니다!");
-    });
-
-    // 최초 실행
+    // 초기화 및 실행
     initUI();
+    calculateData();
     renderLeaderboard();
     renderMatrix();
 </script>
