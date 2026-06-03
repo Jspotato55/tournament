@@ -91,6 +91,23 @@
         .self-cell {
             background-color: var(--matrix-self);
         }
+        
+        /* K/D 강조 스타일 */
+        .kd-text {
+            color: #e67e22;
+            font-weight: bold;
+        }
+        .no-death {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        /* 동점자 강조용 스타일 */
+        .tie-bold {
+            font-weight: bold !important;
+            color: #000000 !important;
+        }
     </style>
 </head>
 <body>
@@ -106,10 +123,13 @@
                     <tr>
                         <th>순위</th>
                         <th>플레이어</th>
+                        <th>경기 수</th>
                         <th>승</th>
                         <th>패</th>
                         <th>승점</th>
                         <th>총 킬 수</th>
+                        <th>총 사망 수</th>
+                        <th>K/D</th>
                     </tr>
                 </thead>
                 <tbody id="leaderboard-body"></tbody>
@@ -133,13 +153,12 @@
 </div>
 
 <script>
-    // [1] 9명의 플레이어 이름 설정 완료
+    // [1] 9명의 플레이어 이름
     const playerNames = [
         "태유", "웅희", "재현", "호준", "건아", "보윤", "지승", "의현", "현구"
     ];
 
-    // [2] 요청하신 경기 결과 4건 입력 완료
-    // 앞으로 경기 데이터가 쌓이면 아래 양식에 맞추어 이어서 추가하시면 됩니다.
+    // [2] 경기 결과 (여기에 계속 추가)
     const matchResults = [
         { p1: "지승", p2: "보윤", winner: "보윤", p1Kills: 0, p2Kills: 2 },
         { p1: "지승", p2: "의현", winner: "의현", p1Kills: 0, p2Kills: 2 },
@@ -152,7 +171,7 @@
     let matchMatrix = {};
 
     playerNames.forEach(p1 => {
-        players[p1] = { name: p1, wins: 0, losses: 0, points: 0, kills: 0 };
+        players[p1] = { name: p1, played: 0, wins: 0, losses: 0, points: 0, kills: 0, deaths: 0 };
         matchMatrix[p1] = {};
         playerNames.forEach(p2 => {
             if (p1 === p2) {
@@ -180,19 +199,21 @@
             const { p1, p2, winner, p1Kills, p2Kills } = match;
 
             if (players[p1] && players[p2]) {
+                players[p1].played += 1;
+                players[p2].played += 1;
                 players[p1].kills += p1Kills;
                 players[p2].kills += p2Kills;
+                players[p1].deaths += p2Kills;
+                players[p2].deaths += p1Kills;
 
                 if (winner === p1) {
                     players[p1].wins += 1;   players[p1].points += 1;
                     players[p2].losses += 1;
-                    
                     matchMatrix[p1][p2] = { points: 1, kills: p1Kills };
                     matchMatrix[p2][p1] = { points: 0, kills: p2Kills };
                 } else if (winner === p2) {
                     players[p2].wins += 1;   players[p2].points += 1;
                     players[p1].losses += 1;
-
                     matchMatrix[p1][p2] = { points: 0, kills: p1Kills };
                     matchMatrix[p2][p1] = { points: 1, kills: p2Kills };
                 }
@@ -202,21 +223,55 @@
 
     // 1. 순위표 렌더링
     function renderLeaderboard() {
+        // [수정] 순위 정렬 알고리즘 보완
         const sortedPlayers = Object.values(players).sort((a, b) => {
-            if (b.points !== a.points) return b.points - a.points;
-            return b.kills - a.kills;
+            if (b.points !== a.points) return b.points - a.points; // 1순위: 승점 내림차순
+            if (b.kills !== a.kills) return b.kills - a.kills;     // 2순위: 킬 수 내림차순
+            return a.deaths - b.deaths;                            // 3순위: 데스 수 오름차순 (적은 사람이 위로)
         });
 
-        leaderboardBody.innerHTML = sortedPlayers.map((p, index) => `
+        leaderboardBody.innerHTML = sortedPlayers.map((p, index) => {
+            // K/D 계산
+            let kdDisplay = "";
+            if (p.deaths === 0 && p.played > 0) {
+                kdDisplay = `<span class="no-death">No death</span>`;
+            } else if (p.played === 0) {
+                kdDisplay = "-";
+            } else {
+                const kdRatio = (p.kills / p.deaths).toFixed(2);
+                kdDisplay = `<span class="kd-text">${kdRatio}</span>`;
+            }
+
+            // [추가] 앞, 뒤 플레이어와 비교하여 승점/킬 수 동점 여부 체크
+            const prev = sortedPlayers[index - 1];
+            const next = sortedPlayers[index + 1];
+
+            const tiePointsWithPrev = prev && prev.points === p.points;
+            const tiePointsWithNext = next && next.points === p.points;
+            const isPointTied = tiePointsWithPrev || tiePointsWithNext; // 승점 동점 여부
+
+            const tieKillsWithPrev = tiePointsWithPrev && prev.kills === p.kills;
+            const tieKillsWithNext = tiePointsWithNext && next.kills === p.kills;
+            const isKillTied = tieKillsWithPrev || tieKillsWithNext; // 승점과 킬 수 모두 동점인 여부
+
+            // 조건별 CSS 클래스 부여
+            const killClass = isPointTied ? 'class="tie-bold"' : '';
+            const deathClass = isKillTied ? 'class="tie-bold"' : '';
+
+            return `
             <tr>
                 <td>${index + 1}</td>
                 <td>${p.name}</td>
+                <td>${p.played}</td>
                 <td>${p.wins}</td>
                 <td>${p.losses}</td>
                 <td><strong>${p.points}</strong></td>
-                <td>${p.kills}</td>
+                <td ${killClass}>${p.kills}</td>
+                <td ${deathClass}>${p.deaths}</td>
+                <td>${kdDisplay}</td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // 2. 9x9 매트릭스 교차표 렌더링
